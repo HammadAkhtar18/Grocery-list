@@ -1,0 +1,7 @@
+﻿Analyzing lib...
+
+  error - core\theme\app_theme.dart:52:18 - The argument type 'CardTheme' can't be assigned to the parameter type 'CardThemeData?'.  - argument_type_not_assignable
+   info - features\grocery_list\presentation\widgets\add_item_sheet.dart:286:21 - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - features\grocery_list\presentation\widgets\add_item_sheet.dart:306:15 - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+
+3 issues found.

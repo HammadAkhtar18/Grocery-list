@@ -1,0 +1,81 @@
+﻿Running Gradle task 'assembleDebug'...                          
+flutter : lib/feature
+s/pantry/presentation
+/widgets/add_pantry_i
+tem_sheet.dart:65:33:
+ Error: Required 
+named parameter 
+'addedDate' must be 
+provided.
+At line:1 char:1
++ flutter build apk 
+--debug 2>&1 | 
+Out-File -FilePath 
+build_ui_check.tx ...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (lib/fea   
+ tures/pa...st be    
+ provided.:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+    final item = 
+PantryItemModel(
+                     
+           ^
+lib/features/pantry/d
+ata/models/pantry_ite
+m_model.dart:39:9: 
+Context: Found this 
+candidate, but the 
+arguments don't 
+match.
+  const 
+PantryItemModel({
+        
+^^^^^^^^^^^^^^^
+Target kernel_snapsho
+t_program failed: 
+Exception
+
+
+FAILURE: Build 
+failed with an 
+exception.
+
+* What went wrong:
+Execution failed for 
+task ':app:compileFlu
+tterBuildDebug'.
+> Process 'command 'C
+:\src\flutter_windows
+_3.35.6-stable\flutte
+r\bin\flutter.bat'' 
+finished with 
+non-zero exit value 1
+
+* Try:
+> Run with 
+--stacktrace option 
+to get the stack 
+trace.
+> Run with --info or 
+--debug option to 
+get more log output.
+> Run with --scan to 
+get full insights.
+> Get more help at ht
+tps://help.gradle.org
+.
+
+BUILD FAILED in 14s
+Running Gradle task 'assembleDebug'...                             18.1s
+Gradle task 
+assembleDebug failed 
+with exit code 1
