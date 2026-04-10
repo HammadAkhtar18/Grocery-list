@@ -18,11 +18,11 @@ class PantryPage extends StatefulWidget {
   State<PantryPage> createState() => _PantryPageState();
 }
 
-class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateMixin {
+class _PantryPageState extends State<PantryPage>
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   late TabController _tabController;
   final _searchController = TextEditingController();
   final List<String?> _tabs = [null, ...AppConstants.locations];
-
 
   @override
   void initState() {
@@ -48,6 +48,7 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -115,15 +116,19 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
                                 const SizedBox(width: 16),
                                 Flexible(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
                                         'Pantry',
-                                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                        ),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .headlineSmall
+                                            ?.copyWith(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                       ),
                                       Text(
                                         'Track your inventory',
@@ -147,9 +152,10 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(48),
                 child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceFor(context),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   child: TabBar(
                     controller: _tabController,
@@ -159,8 +165,10 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
                     indicatorWeight: 3,
                     labelColor: AppColors.secondary,
                     unselectedLabelColor: AppColors.textSecondary,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+                    labelStyle: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14),
+                    unselectedLabelStyle: const TextStyle(
+                        fontWeight: FontWeight.w500, fontSize: 14),
                     tabs: _tabs.map((loc) {
                       return Tab(
                         text: loc ?? 'All',
@@ -173,7 +181,7 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
             // Search bar (pinned in header)
             SliverToBoxAdapter(
               child: Container(
-                color: Colors.white,
+                color: AppColors.surfaceFor(context),
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                 child: TextField(
                   controller: _searchController,
@@ -185,13 +193,15 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
                             icon: const Icon(Icons.clear_rounded),
                             onPressed: () {
                               _searchController.clear();
-                              context.read<PantryBloc>().add(const SearchPantry(''));
+                              context
+                                  .read<PantryBloc>()
+                                  .add(const SearchPantry(''));
                               setState(() {});
                             },
                           )
                         : null,
                     filled: true,
-                    fillColor: AppColors.surfaceVariant,
+                    fillColor: AppColors.surfaceVariantFor(context),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide.none,
@@ -207,7 +217,7 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
           ];
         },
         body: Container(
-          color: Colors.white,
+          color: AppColors.surfaceFor(context),
           child: BlocBuilder<PantryBloc, PantryState>(
             builder: (context, state) {
               if (state is PantryLoading) {
@@ -232,7 +242,9 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
                       index: index,
                       onTap: () => _showEditItemSheet(context, item),
                       onDelete: () {
-                        context.read<PantryBloc>().add(DeletePantryItem(item.id));
+                        context
+                            .read<PantryBloc>()
+                            .add(DeletePantryItem(item.id));
                         Helpers.showSnackBar(context, 'Item deleted');
                       },
                     );
@@ -268,6 +280,9 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
     );
   }
 
+  @override
+  bool get wantKeepAlive => true;
+
   Widget _buildEmptyState(BuildContext context, PantryLoaded? state) {
     final hasSearch = state?.searchQuery.isNotEmpty ?? false;
     final hasFilter = state?.selectedLocation != null;
@@ -299,7 +314,9 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
                   ],
                 ),
                 child: Icon(
-                  hasSearch || hasFilter ? Icons.search_off_rounded : Icons.inventory_2_rounded,
+                  hasSearch || hasFilter
+                      ? Icons.search_off_rounded
+                      : Icons.inventory_2_rounded,
                   size: 60,
                   color: Colors.white,
                 ),
@@ -309,8 +326,8 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
             Text(
               hasSearch || hasFilter ? 'No items found' : 'Pantry is Empty',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             const SizedBox(height: 12),
             Text(
@@ -319,7 +336,7 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
                   : 'Add items to track your\ninventory and expiration dates',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondaryFor(context),
                 fontSize: 16,
                 height: 1.5,
               ),
@@ -332,7 +349,8 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
                 label: const Text('Add Item'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.secondary,
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 ),
               ),
             ],
@@ -353,7 +371,8 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
               color: AppColors.errorLight,
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+            child: Icon(Icons.error_outline_rounded,
+                size: 48, color: AppColors.error),
           ),
           const SizedBox(height: 24),
           Text(message, style: TextStyle(color: AppColors.error)),
@@ -367,15 +386,14 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
     );
   }
 
-
   void _showAddItemSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceFor(context),
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: const AddPantryItemSheet(),
@@ -389,8 +407,8 @@ class _PantryPageState extends State<PantryPage> with SingleTickerProviderStateM
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceFor(context),
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: AddPantryItemSheet(existingItem: item),
@@ -454,11 +472,11 @@ class _PantryItemCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.cardBackgroundFor(context),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withAlpha(25),
+                      color: AppColors.shadowFor(context),
                       blurRadius: 15,
                       offset: const Offset(0, 4),
                     ),
@@ -476,7 +494,8 @@ class _PantryItemCard extends StatelessWidget {
                             color: categoryColor.withAlpha(20),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(categoryIcon, size: 22, color: categoryColor),
+                          child: Icon(categoryIcon,
+                              size: 22, color: categoryColor),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
@@ -485,9 +504,12 @@ class _PantryItemCard extends StatelessWidget {
                             children: [
                               Text(
                                 item.name,
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
                               ),
                               const SizedBox(height: 4),
                               Row(
@@ -495,12 +517,13 @@ class _PantryItemCard extends StatelessWidget {
                                   Icon(
                                     _getLocationIcon(item.location),
                                     size: 14,
-                                    color: AppColors.textSecondary,
+                                    color: AppColors.textSecondaryFor(context),
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)} ${item.unit} • ${item.location}',
-                                    style: Theme.of(context).textTheme.bodySmall,
+                                    '${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)} ${item.unit} \u2022 ${item.location}',
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
                                   ),
                                 ],
                               ),
@@ -509,7 +532,8 @@ class _PantryItemCard extends StatelessWidget {
                         ),
                         // Category badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
                           decoration: BoxDecoration(
                             color: categoryColor.withAlpha(20),
                             borderRadius: BorderRadius.circular(20),
@@ -535,7 +559,8 @@ class _PantryItemCard extends StatelessWidget {
                           if (item.expirationDate != null)
                             _StatusBadge(
                               icon: Icons.schedule_rounded,
-                              text: Helpers.getExpirationText(item.expirationDate),
+                              text: Helpers.getExpirationText(
+                                  item.expirationDate),
                               color: expirationColor,
                             ),
                           if (item.isLowStock)

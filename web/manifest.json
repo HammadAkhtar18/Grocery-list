@@ -1,11 +1,11 @@
 {
-    "name": "grocery_pantry_app",
-    "short_name": "grocery_pantry_app",
+    "name": "Grocery List",
+    "short_name": "Groceries",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F8FAFC",
+    "theme_color": "#00C851",
+    "description": "Manage grocery lists, track pantry inventory, and scan barcodes to keep shopping organized.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

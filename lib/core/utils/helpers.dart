@@ -14,23 +14,24 @@ class Helpers {
 
   /// Format date with time
   static String formatDateTime(DateTime date) {
-    return DateFormat('MMM d, y • h:mm a').format(date);
+    return DateFormat('MMM d, y \u2022 h:mm a').format(date);
   }
 
   /// Get days until expiration
   static int daysUntilExpiration(DateTime expirationDate) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final expiration = DateTime(expirationDate.year, expirationDate.month, expirationDate.day);
+    final expiration =
+        DateTime(expirationDate.year, expirationDate.month, expirationDate.day);
     return expiration.difference(today).inDays;
   }
 
   /// Get expiration status
   static ExpirationStatus getExpirationStatus(DateTime? expirationDate) {
     if (expirationDate == null) return ExpirationStatus.none;
-    
+
     final days = daysUntilExpiration(expirationDate);
-    
+
     if (days < 0) return ExpirationStatus.expired;
     if (days <= 3) return ExpirationStatus.expiringSoon;
     if (days <= 7) return ExpirationStatus.expiringWeek;
@@ -56,9 +57,9 @@ class Helpers {
   /// Get expiration text
   static String getExpirationText(DateTime? expirationDate) {
     if (expirationDate == null) return 'No expiration';
-    
+
     final days = daysUntilExpiration(expirationDate);
-    
+
     if (days < 0) return 'Expired ${-days} day(s) ago';
     if (days == 0) return 'Expires today';
     if (days == 1) return 'Expires tomorrow';
@@ -78,7 +79,8 @@ class Helpers {
   }
 
   /// Show snackbar
-  static void showSnackBar(BuildContext context, String message, {bool isError = false}) {
+  static void showSnackBar(BuildContext context, String message,
+      {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),

@@ -43,3 +43,16 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+**/android/key.properties
+*.jks
+*.keystore
+
+# Debug/analysis output files
+analyze_output*.txt
+build_output*.txt
+build_ui_check*.txt
+_analyze_output.txt
+_test_output.txt
+_build_apk_output.txt
+_build_appbundle_output.txt
+_apksigner_output.txt

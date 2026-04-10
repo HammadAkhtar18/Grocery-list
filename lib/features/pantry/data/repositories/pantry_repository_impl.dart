@@ -1,4 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import '../../../../core/exceptions.dart';
 import '../../domain/repositories/pantry_repository.dart';
 import '../models/pantry_item_model.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -15,11 +16,12 @@ class PantryRepositoryImpl implements PantryRepository {
 
   @override
   Future<List<PantryItemModel>> getAllItems() async {
-    final box = await _pantryBox;
-    final items = box.values.toList();
-    // Sort by added date, newest first
-    items.sort((a, b) => b.addedDate.compareTo(a.addedDate));
-    return items;
+    return _withStorageHandling('Failed to load pantry items.', (box) async {
+      final items = box.values.toList();
+      // Sort by added date, newest first
+      items.sort((a, b) => b.addedDate.compareTo(a.addedDate));
+      return items;
+    });
   }
 
   @override
@@ -30,74 +32,84 @@ class PantryRepositoryImpl implements PantryRepository {
 
   @override
   Future<PantryItemModel?> getItemById(String id) async {
-    final box = await _pantryBox;
-    try {
-      return box.values.firstWhere((item) => item.id == id);
-    } catch (_) {
-      return null;
-    }
+    return _withStorageHandling('Failed to load pantry item: $id.',
+        (box) async {
+      try {
+        return box.values.firstWhere((item) => item.id == id);
+      } on StateError {
+        return null;
+      }
+    });
   }
 
   @override
   Future<void> addItem(PantryItemModel item) async {
-    final box = await _pantryBox;
-    await box.put(item.id, item);
+    await _withStorageHandling('Failed to add pantry item.', (box) async {
+      _throwIfDuplicateExists(box, item);
+      await box.put(item.id, item);
+    });
   }
 
   @override
   Future<void> updateItem(PantryItemModel item) async {
-    final box = await _pantryBox;
-    await box.put(item.id, item);
+    await _withStorageHandling('Failed to update pantry item.', (box) async {
+      _throwIfDuplicateExists(box, item, excludeItemId: item.id);
+      await box.put(item.id, item);
+    });
   }
 
   @override
   Future<void> deleteItem(String id) async {
-    final box = await _pantryBox;
-    await box.delete(id);
+    await _withStorageHandling('Failed to delete pantry item.', (box) async {
+      await box.delete(id);
+    });
   }
 
   /// Core duplicate detection logic
-  /// 
+  ///
   /// This is the CRITICAL feature of the app - checks if an item already
   /// exists in the pantry before adding to shopping list.
-  /// 
+  ///
   /// Priority:
   /// 1. Exact barcode match (if barcode provided)
   /// 2. Case-insensitive name match
   @override
   Future<PantryItemModel?> checkDuplicate(String name, String? barcode) async {
-    final box = await _pantryBox;
-
-    // First try barcode match (exact match)
-    if (barcode != null && barcode.isNotEmpty) {
-      for (var item in box.values) {
-        if (item.barcode != null && item.barcode == barcode) {
-          return item;
+    return _withStorageHandling(
+      'Failed to check pantry for duplicate items.',
+      (box) async {
+        // First try barcode match (exact match)
+        if (barcode != null && barcode.isNotEmpty) {
+          for (final item in box.values) {
+            if (item.barcode != null && item.barcode == barcode) {
+              return item;
+            }
+          }
         }
-      }
-    }
 
-    // Then try name match (case-insensitive, trimmed)
-    final searchName = name.toLowerCase().trim();
-    for (var item in box.values) {
-      if (item.name.toLowerCase().trim() == searchName) {
-        return item;
-      }
-    }
+        // Then try name match (case-insensitive, trimmed)
+        final searchName = name.toLowerCase().trim();
+        for (final item in box.values) {
+          if (item.name.toLowerCase().trim() == searchName) {
+            return item;
+          }
+        }
 
-    return null;
+        return null;
+      },
+    );
   }
 
   @override
   Future<List<PantryItemModel>> searchItems(String query) async {
     if (query.isEmpty) return getAllItems();
-    
+
     final items = await getAllItems();
     final searchQuery = query.toLowerCase();
-    
+
     return items.where((item) {
       return item.name.toLowerCase().contains(searchQuery) ||
-             item.category.toLowerCase().contains(searchQuery);
+          item.category.toLowerCase().contains(searchQuery);
     }).toList();
   }
 
@@ -112,10 +124,60 @@ class PantryRepositoryImpl implements PantryRepository {
     final items = await getAllItems();
     final now = DateTime.now();
     final threshold = now.add(Duration(days: days));
-    
+
     return items.where((item) {
       if (item.expirationDate == null) return false;
       return item.expirationDate!.isBefore(threshold);
     }).toList();
+  }
+
+  void _throwIfDuplicateExists(
+    Box<PantryItemModel> box,
+    PantryItemModel item, {
+    String? excludeItemId,
+  }) {
+    final normalizedName = item.name.trim().toLowerCase();
+    final normalizedBarcode = item.barcode?.trim();
+
+    for (final existingItem in box.values) {
+      if (excludeItemId != null && existingItem.id == excludeItemId) {
+        continue;
+      }
+
+      if (existingItem.name.trim().toLowerCase() == normalizedName) {
+        throw const DuplicatePantryItemException(
+          'An item with this name already exists in your pantry.',
+        );
+      }
+
+      final existingBarcode = existingItem.barcode?.trim();
+      if (normalizedBarcode != null &&
+          normalizedBarcode.isNotEmpty &&
+          existingBarcode != null &&
+          existingBarcode.isNotEmpty &&
+          existingBarcode == normalizedBarcode) {
+        throw const DuplicatePantryItemException(
+          'An item with this barcode already exists in your pantry.',
+        );
+      }
+    }
+  }
+
+  Future<T> _withStorageHandling<T>(
+    String message,
+    Future<T> Function(Box<PantryItemModel> box) operation,
+  ) async {
+    try {
+      final box = await _pantryBox;
+      return await operation(box);
+    } on StorageException {
+      rethrow;
+    } on DuplicatePantryItemException {
+      rethrow;
+    } on HiveError catch (error) {
+      throw StorageException(message, cause: error);
+    } on Exception catch (error) {
+      throw StorageException(message, cause: error);
+    }
   }
 }
