@@ -46,6 +46,7 @@ class AppConstants {
   /// Hive box names
   static const String groceryListsBox = 'grocery_lists';
   static const String pantryItemsBox = 'pantry_items';
+  static const String appSettingsBox = 'app_settings';
 
   /// Hive type IDs
   static const int groceryListTypeId = 0;

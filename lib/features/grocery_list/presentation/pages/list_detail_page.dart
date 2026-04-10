@@ -4,54 +4,37 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/helpers.dart';
 import '../../data/models/grocery_item_model.dart';
-import '../bloc/grocery_bloc.dart';
-import '../bloc/grocery_event.dart';
-import '../bloc/grocery_state.dart';
+import '../bloc/grocery_detail_bloc.dart';
+import '../bloc/grocery_detail_event.dart';
+import '../bloc/grocery_detail_state.dart';
 import '../widgets/add_item_sheet.dart';
 import '../widgets/duplicate_warning_badge.dart';
 
 /// Premium list detail page with gradient header
-class ListDetailPage extends StatefulWidget {
+class ListDetailPage extends StatelessWidget {
   final String listId;
 
   const ListDetailPage({super.key, required this.listId});
 
   @override
-  State<ListDetailPage> createState() => _ListDetailPageState();
-}
-
-class _ListDetailPageState extends State<ListDetailPage> {
-  @override
-  void initState() {
-    super.initState();
-    context.read<GroceryBloc>().add(LoadListDetails(widget.listId));
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return BlocBuilder<GroceryBloc, GroceryState>(
-      buildWhen: (previous, current) {
-        // Only rebuild for states relevant to the detail page
-        return current is GroceryListDetailLoaded ||
-            current is GroceryLoading ||
-            current is GroceryError;
-      },
+    return BlocBuilder<GroceryDetailBloc, GroceryDetailState>(
       builder: (context, state) {
-        if (state is GroceryLoading) {
+        if (state is DetailLoading) {
           return Scaffold(
             appBar: AppBar(title: const Text('Loading...')),
             body: const Center(child: CircularProgressIndicator()),
           );
         }
 
-        if (state is GroceryError) {
+        if (state is DetailError) {
           return Scaffold(
             appBar: AppBar(title: const Text('Error')),
             body: Center(child: Text(state.message)),
           );
         }
 
-        if (state is GroceryListDetailLoaded) {
+        if (state is DetailLoaded) {
           return _buildContent(context, state);
         }
 
@@ -63,7 +46,7 @@ class _ListDetailPageState extends State<ListDetailPage> {
     );
   }
 
-  Widget _buildContent(BuildContext context, GroceryListDetailLoaded state) {
+  Widget _buildContent(BuildContext context, DetailLoaded state) {
     final list = state.list;
     final items = state.shoppingMode
         ? list.items.where((item) => !item.isInPantry).toList()
@@ -75,13 +58,7 @@ class _ListDetailPageState extends State<ListDetailPage> {
       groupedItems.putIfAbsent(item.category, () => []).add(item);
     }
 
-    return PopScope(
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) {
-          context.read<GroceryBloc>().add(LoadLists());
-        }
-      },
-      child: Scaffold(
+    return Scaffold(
       body: CustomScrollView(
         slivers: [
           // Gradient app bar
@@ -97,10 +74,10 @@ class _ListDetailPageState extends State<ListDetailPage> {
                   color: Colors.white.withAlpha(40),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                child:
+                    const Icon(Icons.arrow_back_rounded, color: Colors.white),
               ),
               onPressed: () {
-                context.read<GroceryBloc>().add(LoadLists());
                 Navigator.pop(context);
               },
             ),
@@ -110,7 +87,7 @@ class _ListDetailPageState extends State<ListDetailPage> {
                 padding: const EdgeInsets.only(right: 8),
                 child: IconButton(
                   onPressed: () {
-                    context.read<GroceryBloc>().add(ToggleShoppingMode());
+                    context.read<GroceryDetailBloc>().add(ToggleShoppingMode());
                   },
                   icon: Container(
                     padding: const EdgeInsets.all(8),
@@ -124,12 +101,12 @@ class _ListDetailPageState extends State<ListDetailPage> {
                       state.shoppingMode
                           ? Icons.visibility_off_rounded
                           : Icons.visibility_rounded,
-                      color: state.shoppingMode ? AppColors.primary : Colors.white,
+                      color:
+                          state.shoppingMode ? AppColors.primary : Colors.white,
                     ),
                   ),
-                  tooltip: state.shoppingMode
-                      ? 'Show all items'
-                      : 'Shopping mode',
+                  tooltip:
+                      state.shoppingMode ? 'Show all items' : 'Shopping mode',
                 ),
               ),
             ],
@@ -163,10 +140,13 @@ class _ListDetailPageState extends State<ListDetailPage> {
                           children: [
                             Text(
                               list.name,
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                             ),
                             const SizedBox(height: 4),
                             Row(
@@ -213,7 +193,8 @@ class _ListDetailPageState extends State<ListDetailPage> {
                     Expanded(
                       child: Text(
                         'Shopping mode: Hiding items already in pantry',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w500),
                       ),
                     ),
                   ],
@@ -250,13 +231,12 @@ class _ListDetailPageState extends State<ListDetailPage> {
           ],
         ),
         child: FloatingActionButton.extended(
-          onPressed: () => _showAddItemSheet(context, widget.listId),
+          onPressed: () => _showAddItemSheet(context, listId),
           backgroundColor: Colors.transparent,
           elevation: 0,
           icon: const Icon(Icons.add_rounded),
           label: const Text('Add Item'),
         ),
-      ),
       ),
     );
   }
@@ -264,7 +244,7 @@ class _ListDetailPageState extends State<ListDetailPage> {
   List<Widget> _buildGroupedItems(
     BuildContext context,
     Map<String, List<GroceryItemModel>> groupedItems,
-    GroceryListDetailLoaded state,
+    DetailLoaded state,
   ) {
     final categories = groupedItems.keys.toList()..sort();
     final widgets = <Widget>[];
@@ -292,9 +272,9 @@ class _ListDetailPageState extends State<ListDetailPage> {
               Text(
                 category,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: categoryColor,
-                  fontWeight: FontWeight.w700,
-                ),
+                      color: categoryColor,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
               const SizedBox(width: 8),
               Container(
@@ -342,15 +322,18 @@ class _ListDetailPageState extends State<ListDetailPage> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: (shoppingMode ? AppColors.secondary : AppColors.primary)
-                        .withAlpha(60),
+                    color:
+                        (shoppingMode ? AppColors.secondary : AppColors.primary)
+                            .withAlpha(60),
                     blurRadius: 30,
                     offset: const Offset(0, 15),
                   ),
                 ],
               ),
               child: Icon(
-                shoppingMode ? Icons.check_circle_rounded : Icons.add_shopping_cart_rounded,
+                shoppingMode
+                    ? Icons.check_circle_rounded
+                    : Icons.add_shopping_cart_rounded,
                 size: 48,
                 color: Colors.white,
               ),
@@ -359,8 +342,8 @@ class _ListDetailPageState extends State<ListDetailPage> {
             Text(
               shoppingMode ? 'All done!' : 'No Items Yet',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+                    fontWeight: FontWeight.w700,
+                  ),
             ),
             const SizedBox(height: 12),
             Text(
@@ -383,7 +366,7 @@ class _ListDetailPageState extends State<ListDetailPage> {
   Widget _buildItemTile(
     BuildContext context,
     GroceryItemModel item,
-    GroceryListDetailLoaded state,
+    DetailLoaded state,
     int index,
   ) {
     return TweenAnimationBuilder<double>(
@@ -404,8 +387,8 @@ class _ListDetailPageState extends State<ListDetailPage> {
             children: [
               SlidableAction(
                 onPressed: (_) {
-                  context.read<GroceryBloc>().add(
-                        DeleteItem(widget.listId, item.id),
+                  context.read<GroceryDetailBloc>().add(
+                        DeleteItem(listId, item.id),
                       );
                   Helpers.showSnackBar(context, 'Item deleted');
                 },
@@ -421,8 +404,8 @@ class _ListDetailPageState extends State<ListDetailPage> {
             color: Colors.transparent,
             child: InkWell(
               onTap: () {
-                context.read<GroceryBloc>().add(
-                      ToggleItem(widget.listId, item.id),
+                context.read<GroceryDetailBloc>().add(
+                      ToggleItem(listId, item.id),
                     );
               },
               borderRadius: BorderRadius.circular(16),
@@ -431,14 +414,14 @@ class _ListDetailPageState extends State<ListDetailPage> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: item.isChecked
-                      ? AppColors.surfaceVariant
-                      : Colors.white,
+                      ? AppColors.surfaceVariantFor(context)
+                      : AppColors.cardBackgroundFor(context),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: item.isChecked
                       ? []
                       : [
                           BoxShadow(
-                            color: Colors.black.withAlpha(8),
+                            color: AppColors.shadowFor(context),
                             blurRadius: 10,
                             offset: const Offset(0, 2),
                           ),
@@ -460,11 +443,13 @@ class _ListDetailPageState extends State<ListDetailPage> {
                         color: item.isChecked ? null : Colors.transparent,
                         border: item.isChecked
                             ? null
-                            : Border.all(color: AppColors.textSecondary, width: 2),
+                            : Border.all(
+                                color: AppColors.textSecondary, width: 2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: item.isChecked
-                          ? const Icon(Icons.check_rounded, color: Colors.white, size: 18)
+                          ? const Icon(Icons.check_rounded,
+                              color: Colors.white, size: 18)
                           : null,
                     ),
                     const SizedBox(width: 14),
@@ -475,15 +460,18 @@ class _ListDetailPageState extends State<ListDetailPage> {
                         children: [
                           Text(
                             item.name,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              decoration: item.isChecked
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                              color: item.isChecked
-                                  ? AppColors.textSecondary
-                                  : AppColors.textPrimary,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  decoration: item.isChecked
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  color: item.isChecked
+                                      ? AppColors.textSecondary
+                                      : AppColors.textPrimary,
+                                  fontWeight: FontWeight.w500,
+                                ),
                           ),
                           const SizedBox(height: 4),
                           Row(
@@ -494,14 +482,17 @@ class _ListDetailPageState extends State<ListDetailPage> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.surfaceVariant,
+                                  color: AppColors.surfaceVariantFor(context),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
                                   '${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)} ${item.unit}',
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                 ),
                               ),
                               if (item.isInPantry) ...[
@@ -523,18 +514,22 @@ class _ListDetailPageState extends State<ListDetailPage> {
     );
   }
 
-  void _showAddItemSheet(BuildContext context, String listId) {
-    showModalBottomSheet(
+  Future<void> _showAddItemSheet(BuildContext context, String listId) async {
+    final itemAdded = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+      builder: (sheetContext) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceFor(context),
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        child: AddItemSheet(listId: listId),
+        child: AddItemSheet(groceryListId: listId),
       ),
     );
+
+    if (itemAdded == true && context.mounted) {
+      context.read<GroceryDetailBloc>().add(LoadDetail(listId));
+    }
   }
 }

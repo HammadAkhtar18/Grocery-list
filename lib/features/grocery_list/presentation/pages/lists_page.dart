@@ -4,16 +4,26 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/helpers.dart';
 import '../../data/models/grocery_list_model.dart';
-import '../bloc/grocery_bloc.dart';
-import '../bloc/grocery_event.dart';
-import '../bloc/grocery_state.dart';
+import '../bloc/grocery_lists_bloc.dart';
+import '../bloc/grocery_lists_event.dart';
+import '../bloc/grocery_lists_state.dart';
 
 /// Premium lists page with gradient hero header
-class ListsPage extends StatelessWidget {
+class ListsPage extends StatefulWidget {
   const ListsPage({super.key});
 
   @override
+  State<ListsPage> createState() => _ListsPageState();
+}
+
+class _ListsPageState extends State<ListsPage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -85,10 +95,13 @@ class ListsPage extends StatelessWidget {
                                   children: [
                                     Text(
                                       'Shopping Lists',
-                                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineSmall
+                                          ?.copyWith(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                     ),
                                     Text(
                                       'Manage your grocery trips',
@@ -112,28 +125,21 @@ class ListsPage extends StatelessWidget {
           ),
 
           // List content
-          BlocBuilder<GroceryBloc, GroceryState>(
-            buildWhen: (previous, current) {
-              // Only rebuild for states relevant to the lists page
-              return current is GroceryListsLoaded ||
-                  current is GroceryLoading ||
-                  current is GroceryError ||
-                  current is GroceryInitial;
-            },
+          BlocBuilder<GroceryListsBloc, GroceryListsState>(
             builder: (context, state) {
-              if (state is GroceryLoading) {
+              if (state is ListsLoading) {
                 return const SliverFillRemaining(
                   child: Center(child: CircularProgressIndicator()),
                 );
               }
 
-              if (state is GroceryError) {
+              if (state is ListsError) {
                 return SliverFillRemaining(
                   child: _buildErrorState(context, state.message),
                 );
               }
 
-              if (state is GroceryListsLoaded) {
+              if (state is ListsLoaded) {
                 if (state.lists.isEmpty) {
                   return SliverFillRemaining(
                     child: _buildEmptyState(context),
@@ -153,7 +159,9 @@ class ListsPage extends StatelessWidget {
                             context.push('/list/${list.id}');
                           },
                           onDelete: () {
-                            context.read<GroceryBloc>().add(DeleteList(list.id));
+                            context
+                                .read<GroceryListsBloc>()
+                                .add(DeleteList(list.id));
                             Helpers.showSnackBar(context, 'List deleted');
                           },
                         );
@@ -178,69 +186,77 @@ class ListsPage extends StatelessWidget {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Animated illustration
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.8, end: 1.0),
-              duration: const Duration(milliseconds: 1000),
-              curve: Curves.elasticOut,
-              builder: (context, value, child) {
-                return Transform.scale(scale: value, child: child);
-              },
-              child: Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  gradient: AppGradients.primaryGradient,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withAlpha(60),
-                      blurRadius: 30,
-                      offset: const Offset(0, 15),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(40),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Animated illustration
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.8, end: 1.0),
+                  duration: const Duration(milliseconds: 1000),
+                  curve: Curves.elasticOut,
+                  builder: (context, value, child) {
+                    return Transform.scale(scale: value, child: child);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      gradient: AppGradients.primaryGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withAlpha(60),
+                          blurRadius: 30,
+                          offset: const Offset(0, 15),
+                        ),
+                      ],
                     ),
-                  ],
+                    child: const Icon(
+                      Icons.add_shopping_cart_rounded,
+                      size: 60,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.add_shopping_cart_rounded,
-                  size: 60,
-                  color: Colors.white,
+                const SizedBox(height: 32),
+                Text(
+                  'No Lists Yet',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                Text(
+                  'Create your first shopping list\nand start organizing your groceries',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.textSecondaryFor(context),
+                    fontSize: 16,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: () => _showCreateListDialog(context),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Create List'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 32),
-            Text(
-              'No Lists Yet',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Create your first shopping list\nand start organizing your groceries',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 16,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () => _showCreateListDialog(context),
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Create List'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -261,7 +277,7 @@ class ListsPage extends StatelessWidget {
           Text(message, style: TextStyle(color: AppColors.error)),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => context.read<GroceryBloc>().add(LoadLists()),
+            onPressed: () => context.read<GroceryListsBloc>().add(LoadLists()),
             child: const Text('Retry'),
           ),
         ],
@@ -270,91 +286,128 @@ class ListsPage extends StatelessWidget {
   }
 
   void _showCreateListDialog(BuildContext context) {
-    final controller = TextEditingController();
+    final groceryListsBloc = context.read<GroceryListsBloc>();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.only(
-          left: 24,
-          right: 24,
-          top: 24,
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-        ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: AppGradients.primaryGradient,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.add_rounded, color: Colors.white),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  'Create New List',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'e.g., Weekly Groceries',
-                labelText: 'List Name',
-              ),
-              textCapitalization: TextCapitalization.words,
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (controller.text.trim().isNotEmpty) {
-                        context.read<GroceryBloc>().add(
-                          CreateList(controller.text.trim()),
-                        );
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: const Text('Create'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+      builder: (sheetContext) => BlocProvider.value(
+        value: groceryListsBloc,
+        child: const _CreateListSheet(),
       ),
-    ).then((_) => controller.dispose());
+    );
+  }
+}
+
+class _CreateListSheet extends StatefulWidget {
+  const _CreateListSheet();
+
+  @override
+  State<_CreateListSheet> createState() => _CreateListSheetState();
+}
+
+class _CreateListSheetState extends State<_CreateListSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _createList() {
+    final name = _controller.text.trim();
+    if (name.isEmpty) return;
+
+    final groceryListsBloc = context.read<GroceryListsBloc>();
+    Navigator.of(context).pop();
+    groceryListsBloc.add(CreateList(name));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceFor(context),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: AppGradients.primaryGradient,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.add_rounded, color: Colors.white),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                'Create New List',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            maxLength: 50,
+            decoration: const InputDecoration(
+              hintText: 'e.g., Weekly Groceries',
+              labelText: 'List Name',
+              counterText: '',
+            ),
+            textCapitalization: TextCapitalization.words,
+            onSubmitted: (_) => _createList(),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _createList,
+                  child: const Text('Create'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -394,23 +447,26 @@ class _ListCard extends StatelessWidget {
           direction: DismissDirection.endToStart,
           confirmDismiss: (_) async {
             return await showDialog<bool>(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text('Delete List'),
-                content: Text('Are you sure you want to delete "${list.name}"? This cannot be undone.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, false),
-                    child: const Text('Cancel'),
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Delete List'),
+                    content: Text(
+                        'Are you sure you want to delete "${list.name}"? This cannot be undone.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        style: TextButton.styleFrom(
+                            foregroundColor: AppColors.error),
+                        child: const Text('Delete'),
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                    child: const Text('Delete'),
-                  ),
-                ],
-              ),
-            ) ?? false;
+                ) ??
+                false;
           },
           onDismissed: (_) => onDelete(),
           background: Container(
@@ -420,7 +476,8 @@ class _ListCard extends StatelessWidget {
               color: AppColors.error,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Icon(Icons.delete_rounded, color: Colors.white, size: 28),
+            child:
+                const Icon(Icons.delete_rounded, color: Colors.white, size: 28),
           ),
           child: Material(
             color: Colors.transparent,
@@ -430,11 +487,11 @@ class _ListCard extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.cardBackgroundFor(context),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withAlpha(8),
+                      color: AppColors.shadowFor(context),
                       blurRadius: 20,
                       offset: const Offset(0, 4),
                     ),
@@ -452,13 +509,18 @@ class _ListCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             gradient: isComplete
                                 ? const LinearGradient(
-                                    colors: [AppColors.success, Color(0xFF34D399)],
+                                    colors: [
+                                      AppColors.success,
+                                      Color(0xFF34D399)
+                                    ],
                                   )
                                 : AppGradients.primaryGradient,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
-                            isComplete ? Icons.check_rounded : Icons.shopping_bag_rounded,
+                            isComplete
+                                ? Icons.check_rounded
+                                : Icons.shopping_bag_rounded,
                             color: Colors.white,
                             size: 24,
                           ),
@@ -470,9 +532,12 @@ class _ListCard extends StatelessWidget {
                             children: [
                               Text(
                                 list.name,
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -497,7 +562,9 @@ class _ListCard extends StatelessWidget {
                                   strokeWidth: 5,
                                   backgroundColor: AppColors.surfaceVariant,
                                   valueColor: AlwaysStoppedAnimation(
-                                    isComplete ? AppColors.success : AppColors.primary,
+                                    isComplete
+                                        ? AppColors.success
+                                        : AppColors.primary,
                                   ),
                                 ),
                               ),
@@ -506,7 +573,9 @@ class _ListCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: isComplete ? AppColors.success : AppColors.primary,
+                                  color: isComplete
+                                      ? AppColors.success
+                                      : AppColors.primary,
                                 ),
                               ),
                             ],

@@ -23,6 +23,7 @@ dependencies:
   
   # UI
   flutter_slidable: ^3.0.1
+  cupertino_icons: ^1.0.8
   
   # Barcode
   mobile_scanner: ^3.5.2
@@ -30,6 +31,9 @@ dependencies:
   # Utils
   uuid: ^4.2.2
   intl: ^0.18.1
+  flutter_local_notifications: ^17.2.4
+  path_provider: ^2.1.4
+  share_plus: ^10.0.2
 
 dev_dependencies:
   flutter_test:
@@ -37,6 +41,17 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   hive_generator: ^2.0.1
   build_runner: ^2.4.7
+  bloc_test: ^9.1.5
+  mocktail: ^1.0.4
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icons/app_icon.png"
+  adaptive_icon_background: "#4CAF50"
+  adaptive_icon_foreground: "assets/icons/app_icon_foreground.png"
+  min_sdk_android: 21
